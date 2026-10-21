@@ -1,0 +1,338 @@
+REVCHECK  - ZERO TO HERO PROJECT GUIDE
+================================================
+
+1) PROJECT OVERVIEW
+-------------------
+Project Name:
+- RevCheck 
+
+Primary Goal:
+- Detect whether a review is FAKE or REAL using a fine-tuned transformer model.
+- Provide multiple analysis modes:
+  1. Single text analysis
+  2. URL scraping + analysis
+  3. CSV file batch analysis
+  4. Cross-check analysis (consensus vs outlier)
+
+Tech Stack Summary:
+- Backend: Python, Flask, Torch, Transformers
+- Scraping: Selenium, selenium-stealth, BeautifulSoup
+- Frontend: HTML, CSS, JavaScript
+- Deployment: Docker + Gunicorn
+
+
+2) REPOSITORY STRUCTURE AND USE OF FILES
+----------------------------------------
+
+Root-level files/folders:
+- README.md
+  - High-level project intro, features, architecture, and stack.
+
+- APIDOCS.md
+  - Local access links and endpoint test commands.
+
+- backend/
+  - All server-side logic, model loading/inference, scraping, APIs.
+
+- frontend/
+  - All UI pages and browser-side integration logic.
+
+
+2A) BACKEND FILES - USE OF EACH FILE
+-------------------------------------
+
+1. backend/app.py
+   Core backend application file.
+
+   Responsibilities:
+   - Starts Flask app.
+   - Enables CORS for browser calls.
+   - Loads fine-tuned fake/real classifier model and tokenizer from:
+     backend/final_model_distilroberta/
+   - Defines API routes:
+     - GET /health
+     - GET /api/endpoints
+     - POST /predict
+     - POST /scrape-and-predict
+     - POST /analyze-file
+     - POST /cross-check-review
+   - Serves frontend static pages from frontend/ folder.
+   - Implements model inference function for fake/real prediction.
+   - Implements cross-check logic using zero-shot aspect/sentiment analysis.
+
+2. backend/scraper.py
+   Scraping utility module.
+
+   Responsibilities:
+   - Opens Booking.com hotel page via Selenium Chrome driver.
+   - Handles cookie prompt and opens reviews tab.
+   - Extracts review cards and review titles.
+   - Handles pagination (next page button).
+   - Returns scraped reviews as a pandas DataFrame with review text column.
+
+3. backend/requirements.txt
+   Dependency lock list for backend runtime.
+
+   Includes:
+   - Flask, flask-cors, pandas
+   - torch, transformers, accelerate, safetensors
+   - selenium, selenium-stealth, beautifulsoup4
+   - gunicorn, requests
+
+4. backend/Dockerfile
+   Container build and runtime instructions.
+
+   Responsibilities:
+   - Uses python:3.9-slim image.
+   - Installs chromium + chromium-driver.
+   - Installs Python requirements.
+   - Exposes port 7860.
+   - Runs app via gunicorn.
+
+5. backend/final_model_distilroberta/
+   Saved inference model artifacts.
+
+   Important files:
+   - model.safetensors: fine-tuned model weights
+   - config.json: model architecture and config
+   - tokenizer_config.json, vocab.json, merges.txt, special_tokens_map.json: tokenizer assets
+
+6. backend/__pycache__/
+   Python auto-generated cache files.
+   - Not business logic.
+
+
+2B) FRONTEND FILES - USE OF EACH FILE
+--------------------------------------
+
+1. frontend/index.html
+   Main landing page/home UI.
+   - Navigation to all tools.
+
+2. frontend/text-analysis.html
+   UI for single review text classification.
+
+3. frontend/url-analysis.html
+   UI for scraping-based URL review analysis.
+
+4. frontend/file-analysis.html
+   UI for CSV upload and batch review analysis.
+
+5. frontend/cross-check.html
+   UI for contextual cross-check verdict and clause-level explanation.
+
+6. frontend/api-docs.html
+   API documentation page available from browser.
+
+7. frontend/connection.js
+   Main frontend-to-backend integration logic.
+
+   Responsibilities:
+   - Builds API base URL logic (port 7860, host-aware).
+   - Handles all page actions and fetch calls.
+   - Sends requests to backend APIs.
+   - Parses responses and updates UI tables/cards/errors.
+   - Handles file upload progress simulation and download CSV features.
+
+8. frontend/style.css
+   Full styling and responsive design rules.
+
+9. frontend/logo.png and frontend/Revchecklogo.png
+   Branding assets.
+
+
+3) END-TO-END LOGIC FLOW
+------------------------
+
+A) Text Analysis flow:
+1. User enters review text in text-analysis page.
+2. Frontend sends POST /predict with JSON { "review": "..." }.
+3. Backend tokenizes text and runs fake/real model.
+4. Backend returns prediction and confidence score.
+5. Frontend shows result.
+
+B) URL Analysis flow:
+1. User enters Booking URL in url-analysis page.
+2. Frontend sends POST /scrape-and-predict with JSON { "url": "..." }.
+3. Backend scraper opens URL, extracts review titles, paginates.
+4. Each scraped review is sent through fake/real model.
+5. Backend returns list with review snippet, prediction, confidence.
+6. Frontend shows table and allows CSV export.
+
+C) File Analysis flow:
+1. User uploads CSV file from file-analysis page.
+2. Frontend sends multipart/form-data POST /analyze-file.
+3. Backend validates file:
+   - must be CSV
+   - must contain review column
+4. Backend predicts each row and returns all results.
+5. Frontend shows stats (total, real, fake) and download option.
+
+D) Cross-Check flow:
+1. User enters hotel name + new review text.
+2. Frontend sends POST /cross-check-review.
+3. Backend splits review into clauses.
+4. Backend detects each clause aspect + sentiment using zero-shot model.
+5. Backend compares each clause with historical hotel consensus map.
+6. If contradictory outlier clauses are found, verdict can become FAKE_REVIEW.
+7. Frontend shows overall verdict and clause-level reasons.
+
+
+4) MODEL WORKING (FAKE/REAL CLASSIFIER)
+----------------------------------------
+
+Primary classifier in app.py:
+- Tokenizer: RobertaTokenizer loaded from final_model_distilroberta/
+- Model: RobertaForSequenceClassification loaded from final_model_distilroberta/
+- Label mapping in code:
+  LABELS = ['fake', 'real']
+
+Inference steps:
+1. Input review text is tokenized with truncation and max_length=256.
+2. Model outputs logits for 2 classes.
+3. Softmax converts logits to probabilities.
+4. Argmax selects class index with highest probability.
+5. Index maps to label:
+   - 0 => fake
+   - 1 => real
+6. Confidence score = selected class probability * 100.
+
+Returned API response:
+- prediction: REAL or FAKE
+- confidence_score: percentage string like 93.41%
+
+
+5) HOW DECISION IS MADE (EXACT BASIS)
+-------------------------------------
+
+For /predict, /analyze-file, /scrape-and-predict:
+- Decision basis is highest softmax probability from the fine-tuned binary classifier.
+- Not rule-based.
+- Learned from training data patterns.
+
+Interpretation:
+- If model believes text pattern matches fake-like distribution more strongly, output is FAKE.
+- If model believes pattern matches real-like distribution more strongly, output is REAL.
+
+Signals model usually learns from training (conceptually):
+- Linguistic style and phrasing patterns
+- Emotional exaggeration or suspiciously generic claims
+- Specificity vs vagueness
+- Consistency of sentiment and context cues
+- Token-level and contextual semantic patterns learned by transformer layers
+
+
+6) HOW CROSS-CHECK DECISION IS MADE
+-----------------------------------
+
+Cross-check uses a different logic from the binary fake/real classifier.
+
+Model used:
+- Zero-shot pipeline with facebook/bart-large-mnli
+
+Decision steps:
+1. Review is split into clauses.
+2. Each clause gets:
+   - top detected aspect (wifi, room quality, service, food, etc.)
+   - top sentiment (positive feedback / negative feedback)
+3. Historical reviews for that hotel build consensus counts per aspect.
+4. If new clause sentiment strongly contradicts consensus,
+   it is marked outlier.
+5. If any meaningful outlier found, overall verdict may be FAKE_REVIEW,
+   otherwise GENUINE_REVIEW.
+
+So this route is contextual consistency checking, not only linguistic fake/real classification.
+
+
+7) HOW THE MODEL WAS TRAINED (WHAT IS KNOWN)
+--------------------------------------------
+
+Confirmed from project documentation:
+- Fine-tuned DistilRoBERTa model trained on 20k+ fake and real reviews.
+
+Present in repository:
+- Final trained model artifacts for inference are included.
+
+Not present in repository currently:
+- Original training script/notebook
+- Raw/processed dataset files
+- Exact hyperparameters (epochs, LR, batch size)
+- Exact train/validation split and evaluation report
+
+Conclusion:
+- Training definitely happened externally and exported into final_model_distilroberta.
+- Current repo is optimized for serving/inference, not full retraining pipeline.
+
+
+8) HOW TO RUN THE PROJECT (LOCAL)
+---------------------------------
+
+From project root:
+1. Create and activate venv (if needed).
+2. Install dependencies:
+   pip install -r backend/requirements.txt
+3. Run backend:
+   python backend/app.py
+4. Open browser:
+   http://127.0.0.1:7860/
+
+Main pages:
+- /text-analysis.html
+- /url-analysis.html
+- /file-analysis.html
+- /cross-check.html
+- /api-docs
+
+Health check:
+- GET http://127.0.0.1:7860/health
+
+
+9) API QUICK SUMMARY
+--------------------
+
+1. GET /health
+   - returns server health status
+
+2. POST /predict
+   - input: {"review":"..."}
+   - output: prediction + confidence
+
+3. POST /scrape-and-predict
+   - input: {"url":"booking url"}
+   - output: array of scraped review predictions
+
+4. POST /analyze-file
+   - input: multipart CSV file with review column
+   - output: row-wise predictions
+
+5. POST /cross-check-review
+   - input: {"hotel_name":"...", "review_text":"..."}
+   - output: overall verdict + clause breakdown
+
+
+10) LIMITATIONS AND IMPROVEMENT IDEAS
+-------------------------------------
+
+Current limitations:
+- No training pipeline files in repo for full reproducibility.
+- Scraper depends on target website structure and can break if Booking changes HTML.
+- Cross-check uses in-memory dummy historical database, not persistent DB.
+- Confidence is model probability, not guaranteed real-world certainty.
+
+Recommended upgrades:
+- Add training folder with scripts, configs, metrics, and dataset schema.
+- Add robust scraping retries and selectors fallback.
+- Store historical reviews and consensus in database.
+- Add model monitoring and drift checks.
+- Add test suite for all API routes.
+
+
+11) FINAL SHORT EXPLANATION (INTERVIEW STYLE)
+----------------------------------------------
+
+We built a Flask-based fake review detection platform where frontend pages call backend APIs.
+The backend hosts a fine-tuned DistilRoBERTa binary classifier that predicts fake vs real using softmax probabilities.
+For URL mode, Selenium scrapes Booking reviews and each review goes through the same classifier.
+For file mode, a CSV review column is processed in batch.
+For cross-check mode, a zero-shot model labels clause aspect/sentiment and compares with hotel consensus to detect outlier claims.
+Overall, it is a multi-mode authenticity analysis system combining NLP classification, web scraping, and contextual consistency analysis.

@@ -1,0 +1,13 @@
+Flask==3.1.2
+flask-cors==6.0.1
+pandas==2.3.1
+torch==2.8.0
+transformers==4.55.2
+accelerate==1.10.0
+safetensors==0.6.2
+sentencepiece==0.2.1
+selenium==4.35.0
+selenium-stealth==1.0.6
+beautifulsoup4==4.13.5
+gunicorn==23.0.0
+requests==2.32.5

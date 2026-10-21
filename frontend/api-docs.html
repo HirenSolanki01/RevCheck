@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>API Docs - RevCheck</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+      .docs-page {
+        min-height: 100vh;
+        padding: 120px 0 80px;
+      }
+
+      .docs-grid {
+        display: grid;
+        gap: 1.2rem;
+      }
+
+      .docs-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--gray-200);
+        border-radius: 14px;
+        padding: 1rem;
+      }
+
+      .method-badge {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        margin-right: 0.5rem;
+      }
+
+      .method-get {
+        background: #e6f7ee;
+        color: #0f7a3d;
+      }
+
+      .method-post {
+        background: #eaf1ff;
+        color: #2154d8;
+      }
+
+      .endpoint-path {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-weight: 600;
+        color: var(--text-primary);
+      }
+
+      pre {
+        margin: 0.8rem 0 0;
+        padding: 0.8rem;
+        border-radius: 10px;
+        background: #0c1222;
+        color: #dbe6ff;
+        overflow-x: auto;
+        font-size: 0.85rem;
+      }
+
+      .pages-list {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .pages-list a {
+        color: var(--accent-color);
+        text-decoration: none;
+        font-weight: 600;
+      }
+
+      .pages-list a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header class="header" id="header">
+        <div class="container">
+          <a href="index.html" class="nav-brand">
+            <img src="logo.png" alt="RevCheck Logo" class="logo-img">
+            <h2 class="logo">RevCheck</h2>
+          </a>
+          <nav class="nav" id="nav">
+            <a href="index.html" class="nav-link">Home</a>
+            <a href="text-analysis.html" class="nav-link">Text</a>
+            <a href="url-analysis.html" class="nav-link">URL</a>
+            <a href="file-analysis.html" class="nav-link">File</a>
+            <a href="cross-check.html" class="nav-link">Cross-Check</a>
+            <a href="api-docs.html" class="nav-link">API Docs</a>
+          </nav>
+          <button class="mobile-menu-btn" id="mobile-menu-btn">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+      </header>
+
+      <main class="docs-page">
+        <div class="container">
+          <div class="page-header">
+            <h1 class="page-title">Backend + UI API Docs</h1>
+            <p class="page-subtitle">All pages and API endpoints in one place.</p>
+          </div>
+
+          <div class="analysis-card" style="margin-bottom: 1.5rem;">
+            <h3 class="result-title">UI Pages</h3>
+            <div id="ui-pages" class="pages-list"></div>
+          </div>
+
+          <div class="analysis-card">
+            <h3 class="result-title">Backend Endpoints</h3>
+            <div id="api-endpoints" class="docs-grid"></div>
+          </div>
+        </div>
+      </main>
+
+      <footer class="footer" id="contact">
+        <div class="container">
+          <div class="footer-bottom">
+            <p>&copy; 2026 RevCheck AI. All rights reserved.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <script>
+      // Use the same API_BASE_URL logic as connection.js
+      const isHttpPage = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+      const isBackendPort = window.location.port === '7860';
+      const API_BASE_URL = isHttpPage
+        ? (isBackendPort ? window.location.origin : `${window.location.protocol}//${window.location.hostname}:7860`)
+        : 'http://127.0.0.1:7860';
+
+      // Fallback data in case the backend is unreachable
+      const FALLBACK_DATA = {
+        ui_pages: [
+          {'name': 'Home', 'path': '/'},
+          {'name': 'Text Analysis', 'path': '/text-analysis.html'},
+          {'name': 'URL Analysis', 'path': '/url-analysis.html'},
+          {'name': 'File Analysis', 'path': '/file-analysis.html'},
+          {'name': 'Cross Check', 'path': '/cross-check.html'},
+          {'name': 'API Docs', 'path': '/api-docs'}
+        ],
+        backend_endpoints: [
+          {
+            'name': 'Health Check',
+            'method': 'GET',
+            'path': '/health',
+            'description': 'Simple health endpoint to verify server status.',
+            'content_type': 'application/json',
+            'sample_request': null
+          },
+          {
+            'name': 'Predict Review',
+            'method': 'POST',
+            'path': '/predict',
+            'description': 'Classifies a single review as REAL or FAKE.',
+            'content_type': 'application/json',
+            'sample_request': {'review': 'Great hotel and very clean rooms.'}
+          },
+          {
+            'name': 'Scrape And Predict',
+            'method': 'POST',
+            'path': '/scrape-and-predict',
+            'description': 'Scrapes reviews from a Booking URL and predicts each one.',
+            'content_type': 'application/json',
+            'sample_request': {'url': 'https://www.booking.com/hotel/in/example.en-gb.html'}
+          },
+          {
+            'name': 'Analyze File',
+            'method': 'POST',
+            'path': '/analyze-file',
+            'description': 'Analyzes CSV uploads containing a review column.',
+            'content_type': 'multipart/form-data',
+            'sample_request': {'file': '<csv file with review column>'}
+          },
+          {
+            'name': 'Cross Check Review',
+            'method': 'POST',
+            'path': '/cross-check-review',
+            'description': 'Compares review clauses with hotel consensus signals. Can use mock database or real Booking.com data.',
+            'content_type': 'application/json',
+            'sample_request': {
+              'hotel_name': 'The Royal Pinnacle',
+              'review_text': 'WiFi was amazing but room service was very slow.',
+              'booking_url': 'https://www.booking.com/hotel/in/example.en-gb.html (optional - for real data)'
+            }
+          }
+        ]
+      };
+
+      function methodClass(method) {
+        return method && method.toUpperCase() === 'GET' ? 'method-get' : 'method-post';
+      }
+
+      function renderDocs(data) {
+        const uiPagesEl = document.getElementById('ui-pages');
+        const apiEl = document.getElementById('api-endpoints');
+
+        uiPagesEl.innerHTML = '';
+        apiEl.innerHTML = '';
+
+        (data.ui_pages || []).forEach((page) => {
+          const item = document.createElement('a');
+          item.href = page.path;
+          item.textContent = `${page.name} - ${page.path}`;
+          uiPagesEl.appendChild(item);
+        });
+
+        (data.backend_endpoints || []).forEach((ep) => {
+          const card = document.createElement('div');
+          card.className = 'docs-card';
+
+          const method = (ep.method || 'POST').toUpperCase();
+          const sample = ep.sample_request ? JSON.stringify(ep.sample_request, null, 2) : 'No request body required.';
+
+          card.innerHTML = `
+            <div>
+              <span class="method-badge ${methodClass(method)}">${method}</span>
+              <span class="endpoint-path">${ep.path}</span>
+            </div>
+            <p style="margin: 0.6rem 0 0.2rem; color: var(--text-secondary);">${ep.description || ''}</p>
+            <p style="margin: 0; color: var(--text-muted); font-size: 0.9rem;">Content-Type: ${ep.content_type || 'application/json'}</p>
+            <pre>${sample}</pre>
+          `;
+
+          apiEl.appendChild(card);
+        });
+      }
+
+      async function loadDocs() {
+        try {
+          const endpoint = API_BASE_URL + '/api/endpoints';
+          console.log('Fetching from:', endpoint);
+          const response = await fetch(endpoint);
+          if (!response.ok) {
+            throw new Error(`Failed to load API docs data (Status: ${response.status})`);
+          }
+          const data = await response.json();
+          console.log('API docs loaded from backend:', data);
+          renderDocs(data);
+        } catch (error) {
+          console.error('Error loading docs from backend:', error);
+          console.log('Using fallback data...');
+          renderDocs(FALLBACK_DATA);
+        }
+      }
+
+      loadDocs();
+    </script>
+    <script src="connection.js"></script>
+  </body>
+</html>
