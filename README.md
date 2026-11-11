@@ -15,11 +15,6 @@ The system uses a fine-tuned **DistilRoBERTa** model to classify reviews as real
 
 By combining machine learning with contextual analysis, RevCheck goes beyond simple text classification to provide a more comprehensive approach to review authenticity verification.
 
-## 🌟 Live Demo
-
-- **Frontend:** Add your Netlify deployment URL here.
-- **Backend API:** Add your Hugging Face Spaces URL here.
-
 ## ✨ Key Features
 
 ### 🧠 AI-Powered Fake Review Detection
